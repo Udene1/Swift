@@ -58,19 +58,11 @@ export default function Navbar() {
             <Link href="/" className="hover:text-blue-400 transition-colors">
               Home
             </Link>
-            <Link href="/track/SD849201" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
-              <Package className="w-4 h-4 text-cyan-400" />
-              Sample Parcel
-            </Link>
-            <Link href="/admin" className="hover:text-blue-400 transition-colors flex items-center gap-1.5 text-blue-400">
-              <ShieldCheck className="w-4 h-4" />
-              Admin Portal
-            </Link>
             <Link
               href="/admin/login"
-              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-md shadow-blue-600/20 transition-all flex items-center gap-1"
+              className="bg-slate-900 border border-slate-700/80 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
             >
-              Admin Login <ArrowRight className="w-3.5 h-3.5" />
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Staff Portal
             </Link>
           </nav>
 
@@ -107,13 +99,9 @@ export default function Navbar() {
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
               Home
             </Link>
-            <Link href="/track/SD849201" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-cyan-400" />
-              Demo Sample Tracking (SD849201)
-            </Link>
-            <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-blue-400">
-              <ShieldCheck className="w-4 h-4" />
-              Admin Portal
+            <Link href="/admin/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-slate-300">
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              Staff Portal
             </Link>
           </div>
         </div>

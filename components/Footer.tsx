@@ -24,12 +24,12 @@ export default function Footer() {
 
           {/* Col 2: Fast Links */}
           <div>
-            <h4 className="text-white font-semibold mb-3 text-sm">Quick Services</h4>
+            <h4 className="text-white font-semibold mb-3 text-sm">Services & Tracking</h4>
             <ul className="space-y-2">
               <li><Link href="/" className="hover:text-blue-400">Parcel Tracking</Link></li>
-              <li><Link href="/track/SD849201" className="hover:text-blue-400">Sample Tracking (SD849201)</Link></li>
-              <li><Link href="/track/SD301948" className="hover:text-blue-400">Customs Clearance Sample (SD301948)</Link></li>
-              <li><Link href="/admin" className="hover:text-blue-400">Admin Control Center</Link></li>
+              <li><Link href="/" className="hover:text-blue-400">Express Air Freight</Link></li>
+              <li><Link href="/" className="hover:text-blue-400">Customs Tariff Clearance</Link></li>
+              <li><Link href="/admin/login" className="hover:text-blue-400">Staff Portal</Link></li>
             </ul>
           </div>
 
@@ -74,7 +74,7 @@ export default function Footer() {
         <div className="pt-6 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between text-slate-400 gap-4">
           <p>© {new Date().getFullYear()} SwiftDeliver Global Logistics. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <Link href="/admin/login" className="hover:text-blue-400">Admin Login (admin / admin123)</Link>
+            <Link href="/admin/login" className="hover:text-blue-400">Staff Portal</Link>
           </div>
         </div>
       </div>

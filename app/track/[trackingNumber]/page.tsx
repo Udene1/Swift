@@ -19,7 +19,8 @@ import {
   User,
   Copy,
   Check,
-  RefreshCw
+  RefreshCw,
+  Lock
 } from 'lucide-react';
 import { Parcel, ParcelStatus } from '@/types/parcel';
 import { generatePdfBlob } from '@/lib/pdf';
@@ -68,6 +69,9 @@ export default function TrackingResultPage({ params }: PageProps) {
 
   const handleDownloadPdf = async (type: 'shipping' | 'duty') => {
     if (!parcel) return;
+    if (type === 'shipping' && parcel.shippingPaymentStatus !== 'Paid') return;
+    if (type === 'duty' && parcel.customDutyPaymentStatus !== 'Paid') return;
+
     if (type === 'shipping') setDownloadingShippingPdf(true);
     else setDownloadingDutyPdf(true);
 
@@ -143,7 +147,7 @@ export default function TrackingResultPage({ params }: PageProps) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-slate-300 text-sm font-medium">Fetching real-time parcel telemetry for {trackingNumber}...</p>
+        <p className="text-slate-300 text-sm font-medium">Retrieving tracking details for {trackingNumber}...</p>
       </div>
     );
   }
@@ -160,18 +164,12 @@ export default function TrackingResultPage({ params }: PageProps) {
             We could not find any registered parcel matching tracking number <span className="font-mono text-white font-bold">{trackingNumber}</span>.
           </p>
         </div>
-        <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="pt-4 flex justify-center">
           <Link
             href="/"
-            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-colors"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-colors"
           >
-            ← Search Another Tracking Number
-          </Link>
-          <Link
-            href="/track/SD849201"
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-colors"
-          >
-            Try Demo SD849201
+            ← Back to Search
           </Link>
         </div>
       </div>
@@ -339,23 +337,30 @@ export default function TrackingResultPage({ params }: PageProps) {
               </p>
             )}
 
-            <button
-              onClick={() => handleDownloadPdf('shipping')}
-              disabled={downloadingShippingPdf}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {downloadingShippingPdf ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Generating Shipping Receipt...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Download Shipping Payment Receipt (PDF)
-                </>
-              )}
-            </button>
+            {parcel.shippingPaymentStatus === 'Paid' ? (
+              <button
+                onClick={() => handleDownloadPdf('shipping')}
+                disabled={downloadingShippingPdf}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {downloadingShippingPdf ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Generating Shipping Receipt...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Download Shipping Payment Receipt (PDF)
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="w-full py-3 bg-slate-900 border border-slate-800/80 text-slate-400 text-xs font-medium rounded-xl flex items-center justify-center gap-2 shadow-inner">
+                <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Receipt Unavailable (Awaiting Payment Verification)</span>
+              </div>
+            )}
           </div>
 
           {/* Card 2: Custom Duty */}
@@ -388,23 +393,30 @@ export default function TrackingResultPage({ params }: PageProps) {
               </p>
             )}
 
-            <button
-              onClick={() => handleDownloadPdf('duty')}
-              disabled={downloadingDutyPdf}
-              className="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-teal-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {downloadingDutyPdf ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Generating Clearance Certificate...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Download Custom Duty Clearance Receipt (PDF)
-                </>
-              )}
-            </button>
+            {parcel.customDutyPaymentStatus === 'Paid' ? (
+              <button
+                onClick={() => handleDownloadPdf('duty')}
+                disabled={downloadingDutyPdf}
+                className="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-teal-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {downloadingDutyPdf ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Generating Clearance Certificate...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Download Custom Duty Clearance Receipt (PDF)
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="w-full py-3 bg-slate-900 border border-slate-800/80 text-slate-400 text-xs font-medium rounded-xl flex items-center justify-center gap-2 shadow-inner">
+                <Lock className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>Clearance Certificate Locked (Duty Unpaid)</span>
+              </div>
+            )}
           </div>
 
         </div>

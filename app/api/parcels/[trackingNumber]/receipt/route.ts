@@ -18,6 +18,20 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Parcel not found' }, { status: 404 });
     }
 
+    if (receiptType === 'shipping' && parcel.shippingPaymentStatus !== 'Paid') {
+      return NextResponse.json(
+        { error: 'Shipping receipt is locked. Payment must be verified and marked as Paid by Administrator.' },
+        { status: 403 }
+      );
+    }
+
+    if (receiptType === 'duty' && parcel.customDutyPaymentStatus !== 'Paid') {
+      return NextResponse.json(
+        { error: 'Custom duty clearance receipt is locked. Duty payment must be verified and marked as Paid by Administrator.' },
+        { status: 403 }
+      );
+    }
+
     const pdfBuffer = generatePdfBuffer(parcel, receiptType);
     const filename = receiptType === 'shipping' 
       ? `SwiftDeliver_Shipping_Receipt_${parcel.trackingNumber}.pdf` 

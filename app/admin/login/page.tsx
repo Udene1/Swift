@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, User, ArrowRight, KeyRound } from 'lucide-react';
+import { ShieldCheck, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -37,12 +38,6 @@ export default function AdminLoginPage() {
     }
   };
 
-  const autofillCredentials = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setError('');
-  };
-
   return (
     <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6 glow-blue">
@@ -54,26 +49,8 @@ export default function AdminLoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Admin Portal Login</h1>
           <p className="text-slate-400 text-xs">
-            Authenticate to manage parcels, edit fees, update status, and issue receipts.
+            Enter authorized staff credentials to access the management portal.
           </p>
-        </div>
-
-        {/* Credentials Notice Box */}
-        <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-xs text-slate-300">
-          <div className="flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-cyan-400 shrink-0" />
-            <div>
-              <span>Default Credentials: </span>
-              <span className="font-mono text-white font-bold">admin / admin123</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={autofillCredentials}
-            className="px-2.5 py-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 rounded font-semibold text-[11px] transition-colors"
-          >
-            Autofill
-          </button>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -101,13 +78,21 @@ export default function AdminLoginPage() {
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 focus:outline-none transition-colors p-0.5"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 

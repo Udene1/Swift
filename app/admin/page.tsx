@@ -19,7 +19,11 @@ import {
   Filter,
   Send,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  User,
+  UserCheck,
+  MapPin,
+  Truck
 } from 'lucide-react';
 import { Parcel, ParcelStatus, PaymentStatus, CreateParcelInput } from '@/types/parcel';
 
@@ -28,6 +32,13 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
+
+  // Customer Progress Manager state
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [progressStatus, setProgressStatus] = useState<ParcelStatus>('Pending');
+  const [progressLocation, setProgressLocation] = useState<string>('');
+  const [progressNote, setProgressNote] = useState<string>('');
+  const [updatingProgress, setUpdatingProgress] = useState<boolean>(false);
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -112,6 +123,62 @@ export default function AdminDashboardPage() {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/admin/login');
   };
+
+  // Customer selection helper
+  const handleCustomerSelect = (trackingNum: string) => {
+    setSelectedCustomerId(trackingNum);
+    const target = parcels.find(p => p.trackingNumber === trackingNum);
+    if (target) {
+      setProgressStatus(target.status);
+      setProgressLocation(target.currentLocation);
+      setProgressNote(`Package stage updated to ${target.status}`);
+    }
+  };
+
+  // Submit Progress update for selected customer
+  const handleUpdateCustomerProgress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerId) return;
+    const target = parcels.find(p => p.trackingNumber === selectedCustomerId);
+    if (!target) return;
+
+    setUpdatingProgress(true);
+    try {
+      // Update status & location
+      const res1 = await fetch(`/api/parcels/${target.trackingNumber}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: progressStatus,
+          currentLocation: progressLocation || target.currentLocation,
+        }),
+      });
+
+      // Append timeline checkpoint event
+      const res2 = await fetch(`/api/parcels/${target.trackingNumber}/timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: progressStatus,
+          location: progressLocation || target.currentLocation,
+          description: progressNote || `Package progress updated to ${progressStatus}`,
+        }),
+      });
+
+      if (res1.ok && res2.ok) {
+        showToast(`Progress updated to "${progressStatus}" for customer ${target.recipientName}!`, 'success');
+        fetchParcels();
+      } else {
+        showToast('Failed to update customer progress', 'error');
+      }
+    } catch (err) {
+      showToast('Error updating customer progress', 'error');
+    } finally {
+      setUpdatingProgress(false);
+    }
+  };
+
+  const selectedCustomerParcel = parcels.find(p => p.trackingNumber === selectedCustomerId);
 
   // Create Parcel Handler
   const handleCreateParcel = async (e: React.FormEvent) => {
@@ -368,6 +435,176 @@ export default function AdminDashboardPage() {
 
       </div>
 
+      {/* Customer Delivery Progress Manager Card */}
+      <div className="bg-slate-900/90 border border-blue-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl glow-blue">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-blue-400" />
+              Customer Progress Manager
+            </h2>
+            <p className="text-slate-400 text-xs mt-0.5">
+              Select a customer below to view and update their parcel delivery stage, location, and checkpoint history.
+            </p>
+          </div>
+          {selectedCustomerId && (
+            <button
+              type="button"
+              onClick={() => setSelectedCustomerId('')}
+              className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+            >
+              Clear Customer Selection
+            </button>
+          )}
+        </div>
+
+        {/* Customer Selector Dropdown */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+            Select Customer / Recipient
+          </label>
+          <div className="relative">
+            <User className="w-4 h-4 text-blue-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => handleCustomerSelect(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-white text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+            >
+              <option value="">-- Choose Customer / Recipient to Edit Progress --</option>
+              {parcels.map((p) => (
+                <option key={p.trackingNumber} value={p.trackingNumber}>
+                  👤 {p.recipientName} ({p.recipientEmail}) — Tracking: {p.trackingNumber} [{p.status}]
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Active Customer Details & Interactive Stepper Form */}
+        {selectedCustomerParcel ? (
+          <form onSubmit={handleUpdateCustomerProgress} className="space-y-6 pt-2">
+            
+            {/* Customer Info Banner */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300">
+              <div>
+                <span className="text-slate-500 block uppercase text-[10px]">Customer / Recipient</span>
+                <span className="font-bold text-white text-sm block">{selectedCustomerParcel.recipientName}</span>
+                <span className="text-slate-400 text-[11px] block">{selectedCustomerParcel.recipientEmail}</span>
+              </div>
+
+              <div>
+                <span className="text-slate-500 block uppercase text-[10px]">Route & Location</span>
+                <span className="font-semibold text-slate-200 block">{selectedCustomerParcel.origin} ➔ {selectedCustomerParcel.destination}</span>
+                <span className="text-cyan-400 font-mono text-[11px] block">Current: {selectedCustomerParcel.currentLocation}</span>
+              </div>
+
+              <div>
+                <span className="text-slate-500 block uppercase text-[10px]">Current Status</span>
+                <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 mt-0.5">
+                  {selectedCustomerParcel.status}
+                </span>
+                <span className="text-slate-500 text-[11px] font-mono block">ID: {selectedCustomerParcel.trackingNumber}</span>
+              </div>
+            </div>
+
+            {/* Visual Progress Stage Stepper */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                Select Progress Stage to Advance Customer
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                {[
+                  { key: 'Pending', label: '1. Label Created', icon: '📝' },
+                  { key: 'Picked Up', label: '2. Picked Up', icon: '📦' },
+                  { key: 'Customs Clearance', label: '3. Customs Hold', icon: '🛃' },
+                  { key: 'In Transit', label: '4. In Transit', icon: '✈️' },
+                  { key: 'Out for Delivery', label: '5. Out for Delivery', icon: '🚚' },
+                  { key: 'Delivered', label: '6. Delivered', icon: '✅' },
+                ].map((step) => {
+                  const isSelected = progressStatus === step.key;
+                  return (
+                    <button
+                      key={step.key}
+                      type="button"
+                      onClick={() => {
+                        setProgressStatus(step.key as ParcelStatus);
+                        if (!progressNote || progressNote.startsWith('Package stage updated')) {
+                          setProgressNote(`Package stage updated to ${step.key}`);
+                        }
+                      }}
+                      className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-1.5 ${
+                        isSelected
+                          ? 'bg-blue-600/30 border-blue-500 text-white shadow-lg shadow-blue-500/20 ring-1 ring-blue-500'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="text-base">{step.icon}</span>
+                      <span className="text-[11px] font-bold leading-tight block">{step.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Location & Log Note Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1 text-xs">
+                <label className="font-semibold text-slate-300 uppercase block">Current Location / Hub</label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-cyan-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Frankfurt Cargo Airport Hub"
+                    value={progressLocation}
+                    onChange={(e) => setProgressLocation(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <label className="font-semibold text-slate-300 uppercase block">Checkpoint Log Note</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Package cleared customs inspection and departs on flight SD-401"
+                  value={progressNote}
+                  onChange={(e) => setProgressNote(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Submit Action */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={updatingProgress}
+                className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {updatingProgress ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Updating Customer Progress...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Update Progress for {selectedCustomerParcel.recipientName}
+                  </>
+                )}
+              </button>
+            </div>
+
+          </form>
+        ) : (
+          <div className="p-6 rounded-2xl bg-slate-950/50 border border-dashed border-slate-800 text-center text-slate-400 text-xs">
+            👈 Select a customer from the dropdown menu above to view and edit their delivery progress.
+          </div>
+        )}
+      </div>
+
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
         
@@ -495,6 +732,17 @@ export default function AdminDashboardPage() {
                     {/* Actions */}
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            handleCustomerSelect(parcel.trackingNumber);
+                            window.scrollTo({ top: 320, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 rounded font-semibold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Select customer to edit delivery progress"
+                        >
+                          <UserCheck className="w-3 h-3" /> Select
+                        </button>
+
                         <button
                           onClick={() => openTimelineModal(parcel)}
                           className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-semibold text-[11px] transition-colors flex items-center gap-1"
